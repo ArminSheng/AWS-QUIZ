@@ -564,8 +564,14 @@ pdf2htmlEX.defaultViewer = new pdf2htmlEX.Viewer({});
         color: #fff;
     }
 
-    div {
-        /* margin: 15px 0;   */
+    .opt-item {
+        /* position: relative; */
+    }
+    .opt-checkbox {
+        position: absolute;
+        left: -45px;
+        width: 40px;
+        height: 40px;
     }
 </style>
 
@@ -591,16 +597,29 @@ pdf2htmlEX.defaultViewer = new pdf2htmlEX.Viewer({});
         const divs = Array.from(document.body.querySelectorAll('div'));
         const questions = divs.filter(d => d.innerText.startsWith('QUESTION '));
         questions.forEach(q => {
-            q.innerHTML += '<input class="ans-input" placeholder="Your answer"></input>'
+            // q.innerHTML += '<input class="ans-input" placeholder="Your answer"></input>'
+            addCheckbox(q);
         });
 
         const inputs = questions.map(q => q.lastChild);
         const getRes = document.getElementById('getResult');
         getRes.onclick = () => {
-            const validQues = questions.filter(q => !!q.lastChild.value)
+            const vals = questions.map(q => {
+                let res = '';
+
+                forEachQuestOption(q, optionEle => {
+                    const input = optionEle.querySelector('input');
+                    res += input.checked ? input.value : '';
+                });
+
+                return {question: q, value: res};
+            });
+
+            const validQues = vals.filter(q => !!q.value);
+
             const res = validQues.map(q => {
-                const ans = findQuestAns(q) || 'null';
-                const val = q.lastChild.value || '';
+                const ans = findQuestAns(q.question) || 'null';
+                const val = q.value || '';
                 return val.toLowerCase() === ans.toLowerCase();
             });
             const rightCount = res.filter(i => i === true).length;
@@ -619,6 +638,32 @@ pdf2htmlEX.defaultViewer = new pdf2htmlEX.Viewer({});
         if (node.innerText.startsWith('Answer: ')) return node.innerText.split('Answer: ')[1];
         return findQuestAns(node.nextElementSibling);
     }   
+
+    // const options = ['A.', 'B.', 'C.', 'D.', 'E.'];
+    function addCheckbox(q) {
+        forEachQuestOption(q, (optionEle, optionValue) => {
+            optionEle.classList.add('opt-item');
+            optionEle.innerHTML += `<input class="opt-checkbox" type="checkbox" value="${optionValue[0]}">`;
+        })
+    }
+
+    function forEachQuestOption(q, cb) {
+        while(q) {
+            if (q.innerText.startsWith('Answer: ')) break;
+            const opt = isQuestionOption(q);
+            if (opt) {
+                // q.classList.add('opt-item');
+                // q.innerHTML += `<input class="opt-checkbox" type="checkbox" value="${opt[0]}}">`;
+                cb(q, opt)
+            }
+            q = q.nextElementSibling;
+        }
+    }
+
+    function isQuestionOption(ele) {
+        const options = ['A.', 'B.', 'C.', 'D.', 'E.'];
+        return options.find(o => ele.innerText.startsWith(o))
+    }
 
 </script>
 </body>
